@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useRef } from 'react';
 
-const InlineZoomImage = ({ src, alt, displayName, zoomStyle, setZoomStyle, isStatic = false, isZoomActive, isThresholdedActive, isSegmentationActive, segmentationSrc, isNumberOverlayActive, numberOverlaySrc, isAnyImageFrozen, isFrozen, onImageClick }) => {
+const InlineZoomImage = ({ src, alt, displayName, zoomStyle, setZoomStyle, isStatic = false, isZoomActive, isThresholdedActive, isSegmentationActive, segmentationSrc, isNumberOverlayActive, numberOverlaySrc, isCtNumberOverlayActive, ctNumberOverlaySrc, isAnyImageFrozen, isFrozen, onImageClick }) => {
   const imgRef = useRef(null);
 
   const handleWheel = (e) => {
@@ -47,12 +47,14 @@ const InlineZoomImage = ({ src, alt, displayName, zoomStyle, setZoomStyle, isSta
     if (fileName.includes('_thresholded')) {
       namePart = fileName.split('_thresholded')[0];
     }
-    const mainName = namePart.split('_').slice(1).join('_');
-    if (!mainName) return '';
-    if (mainName === 'DAPI') {
-      return `${mainName} (raw)`;
+    const nameParts = namePart.split('_');
+    const markerName = nameParts[nameParts.length - 1]; // Get the last part, which should be the marker
+
+    if (!markerName) return '';
+    if (markerName === 'DAPI') {
+      return `${markerName} (raw)`;
     }
-    return `${mainName} (${isThresholdedActive ? 'processed' : 'raw'})`;
+    return `${markerName} (${isThresholdedActive ? 'processed' : 'raw'})`;
   };
   const title = displayName || getImageName(src);
 
@@ -76,7 +78,12 @@ const InlineZoomImage = ({ src, alt, displayName, zoomStyle, setZoomStyle, isSta
             ref={imgRef}
             src={src}
             alt={alt}
-            style={isZoomActive && !isStatic ? zoomStyle : {}}
+            style={{
+              width: '100%',
+              height: 'auto',
+              objectFit: 'cover',
+              ...(isZoomActive && !isStatic ? zoomStyle : {}),
+            }}
             className={`${isStatic ? 'static-image' : ''} ${isZoomActive && !isStatic ? 'zoomable' : ''}`}
             loading="lazy"
           />
@@ -88,7 +95,12 @@ const InlineZoomImage = ({ src, alt, displayName, zoomStyle, setZoomStyle, isSta
             src={segmentationSrc}
             alt="Segmentation Overlay"
             className="segmentation-overlay"
-            style={isZoomActive ? zoomStyle : {}}
+            style={{
+              width: '100%',
+              height: 'auto',
+              objectFit: 'cover',
+              ...(isZoomActive ? zoomStyle : {}),
+            }}
           />
         )}
         {isNumberOverlayActive && !isStatic && numberOverlaySrc && (
@@ -96,7 +108,25 @@ const InlineZoomImage = ({ src, alt, displayName, zoomStyle, setZoomStyle, isSta
             src={numberOverlaySrc}
             alt="Number Overlay"
             className="number-overlay"
-            style={isZoomActive ? zoomStyle : {}}
+            style={{
+              width: '100%',
+              height: 'auto',
+              objectFit: 'cover',
+              ...(isZoomActive ? zoomStyle : {}),
+            }}
+          />
+        )}
+        {isCtNumberOverlayActive && !isStatic && ctNumberOverlaySrc && (
+          <img
+            src={ctNumberOverlaySrc}
+            alt="CT Number Overlay"
+            className="number-overlay"
+            style={{
+              width: '100%',
+              height: 'auto',
+              objectFit: 'cover',
+              ...(isZoomActive ? zoomStyle : {}),
+            }}
           />
         )}
         {isZoomActive && !isStatic && (

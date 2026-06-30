@@ -1,7 +1,6 @@
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
-const imageRoutes = require('./routes/images');
 
 const app = express();
 const port = 3000;
@@ -16,7 +15,9 @@ app.use(cors(corsOptions));
 
 // Define the base directory where the image sets are stored.
 // IMPORTANT: Replace this with the actual path on your system.
-const imageBaseDirectory = '/Users/jubayer/Desktop/project_tnhl/web_app/data/output/sp';
+const imageBaseDirectory = '/Users/jubayer/Desktop/project_tnhl/web_app/data/output';
+
+const imageRoutes = require('./routes/images')(imageBaseDirectory);
 
 // Create a static route to serve the images from the base directory.
 // This allows direct access to the image files via a URL.

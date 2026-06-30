@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import ImageGallery from './components/ImageGallery';
 import './App.css';
-import { TbReportSearch } from "react-icons/tb";
+import { TbReportSearch, TbReload } from "react-icons/tb";
 import { BiZoomIn } from "react-icons/bi";
 import { PiMaskHappyBold } from "react-icons/pi";
 import { MdOutlineGrid4X4 } from "react-icons/md";
@@ -28,6 +28,9 @@ function App() {
 
   // New state for number overlay
   const [isNumberOverlayActive, setIsNumberOverlayActive] = useState(false);
+
+  // New state for CT number overlay
+  const [isCtNumberOverlayActive, setIsCtNumberOverlayActive] = useState(false);
 
   // New state for thresholded overlay
   const [isThresholdedActive, setIsThresholdedActive] = useState(false);
@@ -77,6 +80,10 @@ function App() {
     setIsNumberOverlayActive(prev => !prev);
   };
 
+  const toggleCtNumberOverlay = () => {
+    setIsCtNumberOverlayActive(prev => !prev);
+  };
+
   const toggleThresholded = () => {
     setIsThresholdedActive(prev => !prev);
   };
@@ -89,6 +96,8 @@ function App() {
     setSelectedCelltype(value === "All" ? 'All' : value);
   };
 
+  const needsRefetch = activeCoreId && coreIdInput !== activeCoreId;
+  
   return (
     <>
       <div className="input-form">
@@ -113,8 +122,12 @@ function App() {
             {celltypeVariations.map(variation => <option key={variation} value={variation}>{variation}</option>)}
           </select>
         )}
-        <button onClick={handleGetReport} title="Generate images">
-          <TbReportSearch />
+        <button
+          onClick={handleGetReport}
+          title={needsRefetch ? "Reload to view this core" : "Generate images"}
+          style={needsRefetch ? { backgroundColor: '#ff9800', color: 'white' } : {}}
+        >
+          {needsRefetch ? <TbReload /> : <TbReportSearch />}
         </button>
         <button
           onClick={toggleZoom}
@@ -133,9 +146,16 @@ function App() {
         <button
           onClick={toggleNumberOverlay}
           className={`number-overlay-toggle-btn ${isNumberOverlayActive ? 'active' : ''}`}
-          title={isNumberOverlayActive ? 'Hide Ids' : 'Show Ids'}
+          title={isNumberOverlayActive ? 'Hide SP Ids' : 'Show SP Ids'}
         >
-          <MdOutlineGrid4X4 />
+          <MdOutlineGrid4X4 /> SP
+        </button>
+        <button
+          onClick={toggleCtNumberOverlay}
+          className={`number-overlay-toggle-btn ${isCtNumberOverlayActive ? 'active' : ''}`}
+          title={isCtNumberOverlayActive ? 'Hide CT Ids' : 'Show CT Ids'}
+        >
+          <MdOutlineGrid4X4 /> CT
         </button>
         <button
           onClick={toggleThresholded}
@@ -154,6 +174,7 @@ function App() {
           isZoomActive={isZoomActive}
           isSegmentationActive={isSegmentationActive}
           isNumberOverlayActive={isNumberOverlayActive}
+          isCtNumberOverlayActive={isCtNumberOverlayActive}
           isThresholdedActive={isThresholdedActive}
           onCelltypesFound={setCelltypeVariations}
           selectedCelltype={selectedCelltype}
