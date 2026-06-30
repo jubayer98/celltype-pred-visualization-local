@@ -51,7 +51,7 @@ app.get('/', (req, res) => {
 
 app.listen(port, () => {
   const serverUrl = isProduction
-    ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
-    : `http://localhost:${port}`;
+  ? `https://${process.env.RAILWAY_STATIC_URL}`
+  : `http://localhost:${port}`;
   console.log(`Server is running in ${process.env.ENV} mode on ${serverUrl}`);
 });
