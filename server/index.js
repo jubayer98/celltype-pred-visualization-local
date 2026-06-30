@@ -1,21 +1,24 @@
+require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
+const isProduction = process.env.ENV === 'PROD';
 
 // Configure CORS to allow requests from your frontend server
 const corsOptions = {
-  origin: 'http://localhost:5173'
+  origin: isProduction
+    ? process.env.FRONTEND_PROD_URL
+    : process.env.FRONTEND_DEV_URL,
 };
 
 // Enable CORS with the specified options
 app.use(cors(corsOptions));
 
 // Define the base directory where the image sets are stored.
-// IMPORTANT: Replace this with the actual path on your system.
-const imageBaseDirectory = '/Users/jubayer/Desktop/project_tnhl/web_app/data/output';
+const imageBaseDirectory = process.env.IMAGE_BASE_DIRECTORY;
 
 const imageRoutes = require('./routes/images')(imageBaseDirectory);
 
@@ -32,5 +35,6 @@ app.get('/', (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+  const serverUrl = isProduction ? 'your production URL' : `http://localhost:${port}`;
+  console.log(`Server is running in ${process.env.ENV} mode on ${serverUrl}`);
 });

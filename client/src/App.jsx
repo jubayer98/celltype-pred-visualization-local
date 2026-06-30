@@ -62,10 +62,13 @@ function App() {
   };
 
   const handleGetReport = () => {
+    if (activeCoreId === coreIdInput) {
+      return; // Do nothing if the same core ID is already active
+    }
     setActiveCoreId(coreIdInput);
     // Reset celltype selections when a new report is generated
     setCelltypeVariations([]);
-    setSelectedCelltype('All');
+    setSelectedCelltype('');
   };
 
   const toggleZoom = () => {
@@ -93,7 +96,7 @@ function App() {
     // When "All" is selected, we might want to treat it as the default/empty state
     // depending on the desired UX. For now, we'll set it directly.
     // If "Select a cell type view" is chosen, we reset to a default state.
-    setSelectedCelltype(value === "All" ? 'All' : value);
+    setSelectedCelltype(value);
   };
 
   const needsRefetch = activeCoreId && coreIdInput !== activeCoreId;
@@ -125,6 +128,7 @@ function App() {
         <button
           onClick={handleGetReport}
           title={needsRefetch ? "Reload to view this core" : "Generate images"}
+          disabled={activeCoreId && !needsRefetch}
           style={needsRefetch ? { backgroundColor: '#ff9800', color: 'white' } : {}}
         >
           {needsRefetch ? <TbReload /> : <TbReportSearch />}
