@@ -1,63 +1,91 @@
 // src/components/ImageGallery.jsx
 // eslint-disable-next-line no-unused-vars
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import InlineZoomImage from './InlineZoomImage.jsx';
 import Legend from './Legend.jsx';
 
-function ImageGallery({ coreId, isZoomActive, isSegmentationActive, isNumberOverlayActive }) {
-  // eslint-disable-next-line no-unused-vars
-  const [imageUrls, setImageUrls] = useState([]);
+function ImageGallery({
+  coreId,
+  isZoomActive,
+  isSegmentationActive,
+  isNumberOverlayActive,
+  isCtNumberOverlayActive,
+  isThresholdedActive,
+  onCelltypesFound,
+  selectedCelltype,
+}) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  // State to hold the ordered images for the new layout
   const [orderedImages, setOrderedImages] = useState([]);
-  // State to track which image is "frozen"
   const [frozenImageSrc, setFrozenImageSrc] = useState(null);
-  // State for the segmentation overlay URL
   const [segmentationUrl, setSegmentationUrl] = useState(null);
-  // State for the number overlay URL
   const [numberOverlayUrl, setNumberOverlayUrl] = useState(null);
-  // State for celltype legend data
+  const [ctNumberOverlayUrl, setCtNumberOverlayUrl] = useState(null);
   const [celltypeLegend, setCelltypeLegend] = useState(null);
 
-  // Shared zoom state for all images
+  // Store the latest callback to avoid making it a dependency
+  const onCelltypesFoundRef = useRef(onCelltypesFound);
+  useEffect(() => {
+    onCelltypesFoundRef.current = onCelltypesFound;
+  }, [onCelltypesFound]);
+
   const [zoomStyle, setZoomStyle] = useState({
     transform: 'scale(1)',
     transformOrigin: '50% 50%',
   });
 
+  // Reset zoom and frozen state when coreId changes
   useEffect(() => {
-    // Reset zoom and frozen state when the image set changes
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setZoomStyle({ transform: 'scale(1)', transformOrigin: '50% 50%' });
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFrozenImageSrc(null);
-    setSegmentationUrl(null);
-    setNumberOverlayUrl(null);
-    setCelltypeLegend(null);
+  }, [coreId]);
 
-    // Do nothing if the imageSet is not provided
+  // Reset zoom when global zoom is turned off
+  useEffect(() => {
+    if (!isZoomActive) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setZoomStyle({ transform: 'scale(1)', transformOrigin: '50% 50%' });
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setFrozenImageSrc(null);
+      document.body.style.overflowY = 'auto';
+    }
+  }, [isZoomActive]);
+
+  // Main data fetching effect
+  useEffect(() => {
     if (!coreId) return;
+
+    const abortController = new AbortController();
 
     const fetchImages = async () => {
       setIsLoading(true);
       setError(null);
-      
-      // --- Fetch and Parse Celltype Legend Data ---
+
+      // Reset overlays
+      setSegmentationUrl(null);
+      setNumberOverlayUrl(null);
+      setCtNumberOverlayUrl(null);
+      setCelltypeLegend(null);
+
       try {
-        const legendResponse = await fetch(`http://localhost:3000/api/images/${coreId}/csv`);
+        // 1. Fetch celltype legend
+        const legendResponse = await fetch(
+          `http://localhost:3000/api/images/${coreId}/csv?prefix=sp_`,
+          { signal: abortController.signal }
+        );
         if (legendResponse.ok) {
           const text = await legendResponse.text();
           const celltypes = [];
-          // Split by newline and skip the header row
           const rows = text.trim().split('\n').slice(1);
-
-          rows.forEach(row => {
-            const [id, type, cc] = row.split(',');
-            if (id && type && cc) {
+          rows.forEach((row) => {
+            const [id, name, color] = row.split(',');
+            if (id && name && color) {
               celltypes.push({
                 id: id.trim(),
-                name: type.trim(),
-                color: cc.trim(),
+                name: name.trim(),
+                color: color.trim(),
               });
             }
           });
@@ -65,96 +93,116 @@ function ImageGallery({ coreId, isZoomActive, isSegmentationActive, isNumberOver
         } else {
           console.warn(`Could not fetch celltype_info.csv for core "${coreId}".`);
         }
-      } catch (legendError) {
-        console.error(`Error fetching or parsing celltype_info.csv for core "${coreId}":`, legendError);
-      }
 
-      try {
-        // Fetch images from your Express backend API
-        // Make sure your backend is running on localhost:3000
-        const response = await fetch(`http://localhost:3000/api/images/${coreId}`);
-
+        // 2. Fetch image list
+        const response = await fetch(
+          `http://localhost:3000/api/images/${coreId}`,
+          { signal: abortController.signal }
+        );
         if (!response.ok) {
-          // The backend returns a 404 if the directory is not found
           if (response.status === 404) {
             throw new Error(`Core ID "${coreId}" not found.`);
           }
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
-
         const data = await response.json();
-        // Filter for images that include '_raw' in their URL
-        const rawImages = data.filter(url => url.includes('_raw'));
-        setImageUrls(rawImages);
 
-        // --- New layout logic ---
-        const findImage = (name) => data.find(url => url.endsWith(name)) || null;
+        const findImage = (name) => data.find((url) => url.endsWith(name)) || null;
 
-        const celltypesImage = findImage(`${coreId}_celltypes.png`);
-        const rawMarkersImage = findImage(`${coreId}_raw_markers.png`);
-        const segmentationOverlayImage = findImage(`${coreId}_segmentation_overlay.png`);
-        const numberOverlayImage = findImage(`${coreId}_celltypes_number.png`);
+        // 3. Extract specific overlay URLs
+        const spSegmentationOverlay = findImage(`sp_${coreId}_segmentation_overlay.png`);
+        const spNumberOverlay = findImage(`sp_${coreId}_celltypes_number.png`);
+        const ctNumberOverlay = findImage(`ct_${coreId}_celltypes_number.png`);
 
-        setSegmentationUrl(segmentationOverlayImage);
-        setNumberOverlayUrl(numberOverlayImage);
+        setSegmentationUrl(spSegmentationOverlay);
+        setNumberOverlayUrl(spNumberOverlay);
+        setCtNumberOverlayUrl(ctNumberOverlay);
+
+        // 4. Build ordered image list (celltypes + markers)
+        let primaryCelltypeImage, secondaryCelltypeImage;
+        const primaryDisplayName = 'Cell Types (SP)';
+        const secondaryDisplayName = 'Cell Types (CT)';
+
+        if (selectedCelltype && selectedCelltype !== 'All') {
+          primaryCelltypeImage = findImage(`sp_${coreId}_celltype_${selectedCelltype}.png`);
+          secondaryCelltypeImage = findImage(`ct_${coreId}_celltype_${selectedCelltype}.png`);
+        } else {
+          primaryCelltypeImage = findImage(`sp_${coreId}_celltypes.png`);
+          secondaryCelltypeImage = findImage(`ct_${coreId}_celltypes.png`);
+        }
 
         const newOrderedImages = [
-          { url: celltypesImage, name: 'Cell Types' },
-          { url: celltypesImage, name: 'Cell Types' }, // Same image for the second slot
+          { url: primaryCelltypeImage, name: primaryDisplayName, isStatic: false },
+          { url: secondaryCelltypeImage, name: secondaryDisplayName, isStatic: false },
         ];
 
-        // Filter out any other images that aren't part of the specific layout
-        const specialImages = [
-          celltypesImage,
-          rawMarkersImage,
-          segmentationOverlayImage,
-          numberOverlayImage,
-        ].filter(Boolean);
-        const otherImages = rawImages.filter(url => !specialImages.includes(url));
+        // 5. Marker images in specified order
+        const markerOrder = [
+          'DAPI', 'PAX5', 'CD3', 'CD11b', 'CD11c', 'CD68', 'CD90',
+          'PDN', 'CD31', 'CD34', 'CD56', 'CD57', 'CD138', 'CD15',
+        ];
+        const markerImages = markerOrder.map((marker) => {
+          let url;
+          if (marker === 'DAPI') {
+            url = findImage(`sp_${coreId}_DAPI_raw.png`);
+          } else {
+            const suffix = isThresholdedActive ? 'thresholded' : 'raw';
+            url = findImage(`sp_${coreId}_${marker}_${suffix}.png`);
+          }
+          return { url, name: '' };
+        });
 
-        setOrderedImages([...newOrderedImages, ...otherImages.map(url => ({ url, name: '' }))]);
+        setOrderedImages([...newOrderedImages, ...markerImages]);
+
+        // 6. Extract celltype variations for dropdown
+        const celltypeVariationImages = data.filter((url) =>
+          url.includes('_celltype_')
+        );
+        const variations = celltypeVariationImages
+          .map((url) => {
+            const filename = url.split('/').pop();
+            const match = filename.match(/_celltype_(.*?)\.png/);
+            return match ? match[1] : null;
+          })
+          .filter(Boolean);
+
+        if (onCelltypesFoundRef.current) {
+          onCelltypesFoundRef.current(variations.length > 0 ? ['All', ...variations] : []);
+        }
       } catch (err) {
-        setError(err.message);
-        setImageUrls([]); // Clear previous images on error
+        if (err.name !== 'AbortError') {
+          setError(err.message);
+        }
       } finally {
-        setIsLoading(false);
+        if (!abortController.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchImages();
-  }, [coreId]); // This effect re-runs whenever the 'coreId' prop changes
 
-  // Reset zoom when the global toggle is turned off
-  useEffect(() => {
-    if (!isZoomActive) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setZoomStyle({ transform: 'scale(1)', transformOrigin: '50% 50%' });
-      setFrozenImageSrc(null);
-      document.body.style.overflowY = 'auto';
-    }
-  }, [isZoomActive]);
+    return () => {
+      abortController.abort();
+    };
+  }, [coreId, selectedCelltype, isThresholdedActive]); // onCelltypesFound is NOT a dependency
 
+  // Helper click handler
   const handleImageClick = (src) => {
     if (!isZoomActive || !src) return;
-    setFrozenImageSrc(prev => (prev === src ? null : src));
+    setFrozenImageSrc((prev) => (prev === src ? null : src));
   };
 
-  if (isLoading) {
-    return <p>Loading images...</p>;
-  }
-
-  if (error) {
-    return <p className="error-message">{error}</p>;
-  }
+  // Render
+  if (isLoading) return <p>Loading images...</p>;
+  if (error) return <p className="error-message">{error}</p>;
 
   return (
     <>
       <Legend celltypes={celltypeLegend} />
-      <div
-        className="gallery-container"
-      >
+      <div className="gallery-container">
         {orderedImages.length > 0 ? (
-          orderedImages.map((img, index) => (
+          orderedImages.filter(img => img.url).map((img, index) => (
             <InlineZoomImage
               key={`${img.url}-${index}`}
               src={img.url}
@@ -162,10 +210,17 @@ function ImageGallery({ coreId, isZoomActive, isSegmentationActive, isNumberOver
               displayName={img.name}
               isStatic={img.isStatic}
               isZoomActive={isZoomActive}
+              isThresholdedActive={isThresholdedActive}
               isSegmentationActive={isSegmentationActive}
               isNumberOverlayActive={isNumberOverlayActive}
-              segmentationSrc={segmentationUrl}
-              numberOverlaySrc={numberOverlayUrl}
+              isCtNumberOverlayActive={isCtNumberOverlayActive}
+              segmentationSrc={isSegmentationActive ? segmentationUrl : null}
+              numberOverlaySrc={
+                isNumberOverlayActive ? numberOverlayUrl : null
+              }
+              ctNumberOverlaySrc={
+                isCtNumberOverlayActive ? ctNumberOverlayUrl : null
+              }
               isAnyImageFrozen={!!frozenImageSrc}
               isFrozen={frozenImageSrc === img.url}
               onImageClick={() => handleImageClick(img.url)}
@@ -174,7 +229,6 @@ function ImageGallery({ coreId, isZoomActive, isSegmentationActive, isNumberOver
             />
           ))
         ) : (
-          // Show this message if the fetch was successful but returned no images
           !isLoading && <p>No images found in this set.</p>
         )}
       </div>

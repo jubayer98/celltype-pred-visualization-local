@@ -3,10 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import ImageGallery from './components/ImageGallery';
 import './App.css';
-import { TbReportSearch } from "react-icons/tb";
+import { TbReportSearch, TbReload } from "react-icons/tb";
 import { BiZoomIn } from "react-icons/bi";
 import { PiMaskHappyBold } from "react-icons/pi";
 import { MdOutlineGrid4X4 } from "react-icons/md";
+import { TbFilter } from "react-icons/tb";
 
 
 function App() {
@@ -27,6 +28,16 @@ function App() {
 
   // New state for number overlay
   const [isNumberOverlayActive, setIsNumberOverlayActive] = useState(false);
+
+  // New state for CT number overlay
+  const [isCtNumberOverlayActive, setIsCtNumberOverlayActive] = useState(false);
+
+  // New state for thresholded overlay
+  const [isThresholdedActive, setIsThresholdedActive] = useState(false);
+
+  // State for the celltype variations dropdown
+  const [celltypeVariations, setCelltypeVariations] = useState([]);
+  const [selectedCelltype, setSelectedCelltype] = useState('');
 
   useEffect(() => {
     const fetchCoreIds = async () => {
@@ -51,7 +62,13 @@ function App() {
   };
 
   const handleGetReport = () => {
+    if (activeCoreId === coreIdInput) {
+      return; // Do nothing if the same core ID is already active
+    }
     setActiveCoreId(coreIdInput);
+    // Reset celltype selections when a new report is generated
+    setCelltypeVariations([]);
+    setSelectedCelltype('');
   };
 
   const toggleZoom = () => {
@@ -66,6 +83,24 @@ function App() {
     setIsNumberOverlayActive(prev => !prev);
   };
 
+  const toggleCtNumberOverlay = () => {
+    setIsCtNumberOverlayActive(prev => !prev);
+  };
+
+  const toggleThresholded = () => {
+    setIsThresholdedActive(prev => !prev);
+  };
+
+  const handleCelltypeChange = (event) => {
+    const value = event.target.value;
+    // When "All" is selected, we might want to treat it as the default/empty state
+    // depending on the desired UX. For now, we'll set it directly.
+    // If "Select a cell type view" is chosen, we reset to a default state.
+    setSelectedCelltype(value);
+  };
+
+  const needsRefetch = activeCoreId && coreIdInput !== activeCoreId;
+  
   return (
     <>
       <div className="input-form">
@@ -73,14 +108,30 @@ function App() {
           value={coreIdInput}
           onChange={handleInputChange}
           aria-label="Select core ID"
+          style={{ width: '200px' }}
         >
           <option value="" disabled>Select a core ID</option>
           {coreIds.map(set => (
             <option key={set} value={set}>{set}</option>
           ))}
         </select>
-        <button onClick={handleGetReport} title="Generate images">
-          <TbReportSearch />
+        {celltypeVariations.length > 0 && (
+          <select
+            value={selectedCelltype}
+            onChange={handleCelltypeChange}
+            aria-label="Select cell type view"
+            style={{ width: '200px' }}
+          >
+            {celltypeVariations.map(variation => <option key={variation} value={variation}>{variation}</option>)}
+          </select>
+        )}
+        <button
+          onClick={handleGetReport}
+          title={needsRefetch ? "Reload to view this core" : "Generate images"}
+          disabled={activeCoreId && !needsRefetch}
+          style={needsRefetch ? { backgroundColor: '#ff9800', color: 'white' } : {}}
+        >
+          {needsRefetch ? <TbReload /> : <TbReportSearch />}
         </button>
         <button
           onClick={toggleZoom}
@@ -99,14 +150,40 @@ function App() {
         <button
           onClick={toggleNumberOverlay}
           className={`number-overlay-toggle-btn ${isNumberOverlayActive ? 'active' : ''}`}
-          title={isNumberOverlayActive ? 'Hide Ids' : 'Show Ids'}
+          title={isNumberOverlayActive ? 'Hide SP Ids' : 'Show SP Ids'}
         >
-          <MdOutlineGrid4X4 />
+          <MdOutlineGrid4X4 /> SP
+        </button>
+        <button
+          onClick={toggleCtNumberOverlay}
+          className={`number-overlay-toggle-btn ${isCtNumberOverlayActive ? 'active' : ''}`}
+          title={isCtNumberOverlayActive ? 'Hide CT Ids' : 'Show CT Ids'}
+        >
+          <MdOutlineGrid4X4 /> CT
+        </button>
+        <button
+          onClick={toggleThresholded}
+          className={`thresholded-toggle-btn ${isThresholdedActive ? "active" : ""}`}
+          style={isThresholdedActive ? { backgroundColor: 'red' } : {}}
+          title={isThresholdedActive ? 'Show raw images' : 'Show thresholded images'}
+        >
+          <TbFilter />
         </button>
       </div>
 
       {/* Conditionally render the ImageGallery only when a set is active */}
-      {activeCoreId && <ImageGallery coreId={activeCoreId} isZoomActive={isZoomActive} isSegmentationActive={isSegmentationActive} isNumberOverlayActive={isNumberOverlayActive} />}
+      {activeCoreId && (
+        <ImageGallery
+          coreId={activeCoreId}
+          isZoomActive={isZoomActive}
+          isSegmentationActive={isSegmentationActive}
+          isNumberOverlayActive={isNumberOverlayActive}
+          isCtNumberOverlayActive={isCtNumberOverlayActive}
+          isThresholdedActive={isThresholdedActive}
+          onCelltypesFound={setCelltypeVariations}
+          selectedCelltype={selectedCelltype}
+        />
+      )}
     </>
   );
 }
