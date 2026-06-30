@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import InlineZoomImage from './InlineZoomImage.jsx';
 import Legend from './Legend.jsx';
 
-function ImageGallery({ coreId, isZoomActive, isSegmentationActive, isNumberOverlayActive }) {
+function ImageGallery({ coreId, isZoomActive, isSegmentationActive, isNumberOverlayActive, isThresholdedActive, onCelltypesFound, selectedCelltype }) {
   // eslint-disable-next-line no-unused-vars
   const [imageUrls, setImageUrls] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -83,38 +83,81 @@ function ImageGallery({ coreId, isZoomActive, isSegmentationActive, isNumberOver
         }
 
         const data = await response.json();
-        // Filter for images that include '_raw' in their URL
-        const rawImages = data.filter(url => url.includes('_raw'));
-        setImageUrls(rawImages);
+        // Decide whether to show raw or thresholded images
+        const imagesToShow = isThresholdedActive
+          ? data.filter(url => url.includes('_thresholded.png'))
+          : data.filter(url => url.includes('_raw'));
+        setImageUrls(imagesToShow);
 
         // --- New layout logic ---
         const findImage = (name) => data.find(url => url.endsWith(name)) || null;
 
         const celltypesImage = findImage(`${coreId}_celltypes.png`);
-        const rawMarkersImage = findImage(`${coreId}_raw_markers.png`);
         const segmentationOverlayImage = findImage(`${coreId}_segmentation_overlay.png`);
         const numberOverlayImage = findImage(`${coreId}_celltypes_number.png`);
 
         setSegmentationUrl(segmentationOverlayImage);
         setNumberOverlayUrl(numberOverlayImage);
 
+        // --- Find and set celltype variations for the new dropdown ---
+        const celltypeVariationImages = data.filter(url => url.includes('_celltype_'));
+        const variations = celltypeVariationImages.map(url => {
+          const filename = url.split('/').pop();
+          const match = filename.match(/_celltype_(.*?)\.png/);
+          return match ? match[1] : null;
+        }).filter(Boolean);
+
+        if (onCelltypesFound) {
+          if (variations.length > 0) {
+            onCelltypesFound(['All', ...variations]);
+          } else {
+            onCelltypesFound([]);
+          }
+        }
+
+        // Determine which celltype image to show in the second slot.
+        // The logic is now to show the base celltype image first, and the selected one second.
+        let primaryCelltypeImage;
+        let secondaryCelltypeImage;
+        let primaryDisplayName;
+        let secondaryDisplayName;
+
+        if (selectedCelltype && selectedCelltype !== 'All') {
+          const specificCelltypeImage = findImage(`${coreId}_celltype_${selectedCelltype}.png`);
+          primaryCelltypeImage = specificCelltypeImage;
+          secondaryCelltypeImage = specificCelltypeImage;
+          primaryDisplayName = selectedCelltype;
+          secondaryDisplayName = selectedCelltype;
+        } else {
+          primaryCelltypeImage = celltypesImage;
+          secondaryCelltypeImage = celltypesImage;
+          primaryDisplayName = 'Cell Types';
+          secondaryDisplayName = 'Cell Types';
+        }
+
         const newOrderedImages = [
-          { url: celltypesImage, name: 'Cell Types' },
-          { url: celltypesImage, name: 'Cell Types' }, // Same image for the second slot
+          { url: primaryCelltypeImage, name: primaryDisplayName, isStatic: false },
+          { url: secondaryCelltypeImage, name: secondaryDisplayName, isStatic: false },
         ];
 
-        // Filter out any other images that aren't part of the specific layout
-        const specialImages = [
-          celltypesImage,
-          rawMarkersImage,
-          segmentationOverlayImage,
-          numberOverlayImage,
-        ].filter(Boolean);
-        const otherImages = rawImages.filter(url => !specialImages.includes(url));
+        // --- New marker ordering and DAPI logic ---
+        const markerOrder = ['DAPI', 'PAX5', 'CD3', 'CD11b', 'CD11c', 'CD68', 'CD90', 'PDN', 'CD31', 'CD34', 'CD56', 'CD57', 'CD138', 'CD15'];
+        const otherImages = markerOrder.map(marker => {
+          let imageUrl;
+          if (marker === 'DAPI') {
+            // Always show the raw DAPI image
+            imageUrl = findImage(`${coreId}_${marker}_raw.png`);
+          } else {
+            // For other markers, respect the threshold toggle
+            const suffix = isThresholdedActive ? 'thresholded' : 'raw';
+            imageUrl = findImage(`${coreId}_${marker}_${suffix}.png`);
+          }
+          return { url: imageUrl, name: '' }; // name is derived in InlineZoomImage
+        });
 
-        setOrderedImages([...newOrderedImages, ...otherImages.map(url => ({ url, name: '' }))]);
+        setOrderedImages([...newOrderedImages, ...otherImages]);
       } catch (err) {
-        setError(err.message);
+        setError(err.message); // Set error state to display it in the UI
         setImageUrls([]); // Clear previous images on error
       } finally {
         setIsLoading(false);
@@ -122,7 +165,7 @@ function ImageGallery({ coreId, isZoomActive, isSegmentationActive, isNumberOver
     };
 
     fetchImages();
-  }, [coreId]); // This effect re-runs whenever the 'coreId' prop changes
+  }, [coreId, selectedCelltype, onCelltypesFound, isThresholdedActive]); // Re-run when coreId or selectedCelltype changes
 
   // Reset zoom when the global toggle is turned off
   useEffect(() => {
@@ -162,6 +205,7 @@ function ImageGallery({ coreId, isZoomActive, isSegmentationActive, isNumberOver
               displayName={img.name}
               isStatic={img.isStatic}
               isZoomActive={isZoomActive}
+              isThresholdedActive={isThresholdedActive}
               isSegmentationActive={isSegmentationActive}
               isNumberOverlayActive={isNumberOverlayActive}
               segmentationSrc={segmentationUrl}

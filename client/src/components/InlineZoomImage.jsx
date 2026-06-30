@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 import React, { useState, useRef } from 'react';
 
-const InlineZoomImage = ({ src, alt, displayName, zoomStyle, setZoomStyle, isStatic = false, isZoomActive, isSegmentationActive, segmentationSrc, isNumberOverlayActive, numberOverlaySrc, isAnyImageFrozen, isFrozen, onImageClick }) => {
+const InlineZoomImage = ({ src, alt, displayName, zoomStyle, setZoomStyle, isStatic = false, isZoomActive, isThresholdedActive, isSegmentationActive, segmentationSrc, isNumberOverlayActive, numberOverlaySrc, isAnyImageFrozen, isFrozen, onImageClick }) => {
   const imgRef = useRef(null);
 
   const handleWheel = (e) => {
@@ -42,11 +42,17 @@ const InlineZoomImage = ({ src, alt, displayName, zoomStyle, setZoomStyle, isSta
   // Use displayName if provided, otherwise parse from src
   const getImageName = (sourceUrl) => {
     if (!sourceUrl) return '';
-    const fileName = src.split('/').pop() || '';
-    const namePart = fileName.split('_raw')[0];
+    const fileName = sourceUrl.split('/').pop() || '';
+    let namePart = fileName.split('_raw')[0];
+    if (fileName.includes('_thresholded')) {
+      namePart = fileName.split('_thresholded')[0];
+    }
     const mainName = namePart.split('_').slice(1).join('_');
     if (!mainName) return '';
-    return `${mainName} (raw)`;
+    if (mainName === 'DAPI') {
+      return `${mainName} (raw)`;
+    }
+    return `${mainName} (${isThresholdedActive ? 'processed' : 'raw'})`;
   };
   const title = displayName || getImageName(src);
 
