@@ -1,0 +1,359 @@
+/* src/App.css */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: #000;
+  color: #fff;
+  margin: 0;
+  overflow-y: scroll; /* Always show scrollbar to prevent layout shift */
+}
+
+h1, h2 {
+  text-align: center;
+  color: #ccc;
+  margin-bottom: 30px;
+}
+
+h2 {
+  color: #ccc;
+}
+
+.input-form {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px 40px;
+  margin-bottom: 40px;
+}
+
+.input-form input {
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #555;
+  border-radius: 6px;
+  width: 100%;
+  max-width: 300px;
+  background-color: #222;
+  color: #fff;
+}
+
+.input-form input:focus, .input-form select:focus,
+.input-form button:focus {
+  outline: none;
+}
+
+.input-form button {
+  padding: 10px 15px;
+  font-size: 16px;
+  color: #fff;
+  background-color: #2c2c2c;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.input-form select {
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #555;
+  border-radius: 6px;
+  width: 100%;
+  max-width: 300px;
+  background-color: #222;
+  color: #fff;
+  cursor: pointer;
+}
+
+.input-form button:hover {
+  background-color: #3a3b3c;
+}
+
+.zoom-toggle-btn {
+  padding: 10px 15px;
+  font-size: 20px;
+  font-weight: bold;
+  color: #fff;
+  background-color: #2c2c2c;
+  border: 1px solid #555;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.zoom-toggle-btn:hover {
+  background-color: #3a3b3c;
+}
+
+.zoom-toggle-btn.active {
+  background-color: #007bff;
+  border-color: #007bff;
+}
+
+.segmentation-toggle-btn {
+  padding: 10px 20px;
+  font-size: 16px;
+  color: #fff;
+  background-color: #2c2c2c;
+  border: 1px solid #555;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.segmentation-toggle-btn:hover {
+  background-color: #3a3b3c;
+}
+
+.segmentation-toggle-btn.active {
+  background-color: #28a745; /* A nice green color */
+  border-color: #28a745;
+}
+
+.number-overlay-toggle-btn {
+  padding: 10px 20px;
+  font-size: 16px;
+  color: #fff;
+  background-color: #2c2c2c;
+  border: 1px solid #555;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.number-overlay-toggle-btn:hover {
+  background-color: #3a3b3c;
+}
+
+.number-overlay-toggle-btn.active {
+  background-color: #ffc107; /* A nice yellow/amber color */
+  border-color: #ffc107;
+  color: #1a1a1a;
+}
+
+.legend-container {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  padding: 10px 20px 30px;
+  background-color: #1a1a1a;
+  border-bottom: 1px solid #333;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.legend-item h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: #ccc;
+}
+
+.legend-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 20px;
+  width: 100%;
+}
+
+.legend-entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.legend-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  color: white;
+}
+
+.gallery-container {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 15px;
+  padding: 0 15px; /* Add slight margin for scrolling */
+}
+@media (max-width: 1200px) {
+  .gallery-container {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+@media (max-width: 900px) {
+  .gallery-container {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .gallery-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 400px) {
+  .gallery-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+.gallery-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  border: 1px solid #333;
+  background-color: #1a1a1a;
+  /* The image itself will handle transitions */
+}
+
+.image-zoom-wrapper {
+  position: relative; /* Make this a positioning context for the overlay */
+  flex-grow: 1;
+  overflow: hidden;
+  border-radius: 0 0 7px 7px; /* Rounded bottom corners */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.gallery-item img.zoomable {
+  cursor: zoom-in;
+}
+
+.static-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* Resize image to fit inside the container */
+  padding: 10px; /* Add some padding around the legend */
+  box-sizing: border-box;
+}
+
+.image-title-container {
+  text-align: center;
+  background: #2c2c2c;
+  padding: 6px 0;
+  border-bottom: 1px solid #444;
+  border-radius: 7px 7px 0 0;
+}
+
+.image-title {
+  color: #fff;
+  font-size: 14px;
+  margin: 0;
+  font-weight: 500;
+}
+
+.image-title-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+}
+
+.image-toggle-btn {
+  background: #444;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.image-toggle-btn:hover {
+  background: #555;
+}
+
+.error-message {
+  color: #ff8a80;
+  text-align: center;
+  font-weight: bold;
+}
+
+.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #888;
+  font-style: italic;
+}
+
+.secondary-image {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  margin-top: 5px;
+}
+
+.zoom-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 32px;
+  font-weight: 200;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  pointer-events: none; /* Make sure it doesn't interfere with mouse events */
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.7);
+}
+
+.image-zoom-wrapper:hover .zoom-indicator, .zoom-indicator.active {
+  opacity: 0.5;
+}
+
+.segmentation-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none; /* Allows mouse events to pass through to the image below */
+  mix-blend-mode: screen; /* This blend mode often works well for overlays */
+  opacity: 0.7; /* Make it slightly transparent */
+}
+
+.number-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none; /* Allows mouse events to pass through to the image below */
+  mix-blend-mode: screen;
+  opacity: 0.8;
+  z-index: 3; /* Ensure it's on top of other overlays */
+}
