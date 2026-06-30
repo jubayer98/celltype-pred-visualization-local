@@ -3,6 +3,21 @@ const express = require('express');
 const path = require('path');
 const cors = require('cors');
 
+// --- Environment Variable Validation ---
+const requiredEnv = ['IMAGE_BASE_DIRECTORY', 'ENV'];
+if (process.env.ENV === 'PROD') {
+  requiredEnv.push('FRONTEND_PROD_URL');
+} else {
+  requiredEnv.push('FRONTEND_DEV_URL');
+}
+
+for (const variable of requiredEnv) {
+  if (!process.env[variable]) {
+    // In production, Railway will restart the service. In development, it will crash.
+    console.error(`FATAL: Environment variable ${variable} is not set.`);
+    process.exit(1);
+  }
+}
 const app = express();
 const port = process.env.PORT || 3000;
 const isProduction = process.env.ENV === 'PROD';
@@ -35,6 +50,8 @@ app.get('/', (req, res) => {
 });
 
 app.listen(port, () => {
-  const serverUrl = isProduction ? 'your production URL' : `http://localhost:${port}`;
+  const serverUrl = isProduction
+    ? `https://${process.env.RAILWAY_STATIC_URL}`
+    : `http://localhost:${port}`;
   console.log(`Server is running in ${process.env.ENV} mode on ${serverUrl}`);
 });
