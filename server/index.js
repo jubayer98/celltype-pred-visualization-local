@@ -1,22 +1,28 @@
+require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
-const imageRoutes = require('./routes/images');
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
+const nodeEnv = process.env.NODE_ENV || 'development';
 
 // Configure CORS to allow requests from your frontend server
 const corsOptions = {
-  origin: 'http://localhost:5173'
+  origin: process.env.FRONT_END_URL
 };
 
 // Enable CORS with the specified options
 app.use(cors(corsOptions));
 
-// Define the base directory where the image sets are stored.
-// IMPORTANT: Replace this with the actual path on your system.
-const imageBaseDirectory = '/Users/jubayer/Desktop/project_tnhl/web_app/data/output/sp';
+// Get the base directory for images from environment variables.
+const imageBaseDirectory = process.env.IMAGE_BASE_DIRECTORY;
+if (!imageBaseDirectory) {
+  console.error('Error: IMAGE_BASE_DIRECTORY is not set in the .env file.');
+  process.exit(1); // Exit the application if the path is not configured.
+}
+
+const imageRoutes = require('./routes/images')(imageBaseDirectory);
 
 // Create a static route to serve the images from the base directory.
 // This allows direct access to the image files via a URL.
@@ -31,5 +37,9 @@ app.get('/', (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+  if (nodeEnv === 'development') {
+    console.log(`Server is running on http://localhost:${port}`);
+  } else {
+    console.log(`Server is listening on port ${port}`);
+  }
 });
